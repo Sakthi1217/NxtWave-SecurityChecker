@@ -15,7 +15,8 @@
 ##############################################################################
 # pysemgrep command dispatch (semgrep scan vs semgrep ci vs ...)
 #
-from typing import Dict
+import json
+from typing import Dict, Optional
 
 import click
 
@@ -27,6 +28,7 @@ from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
 from semgrep.default_group import DefaultGroup
 from semgrep.git import git_check_output
+from semgrep.nxtwave_agent import semgrep_scanner_node
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
@@ -67,6 +69,31 @@ def maybe_set_git_safe_directories() -> None:
 ##############################################################################
 
 
+@click.command(name="eval-nxtwave")
+@click.argument(
+    "target",
+    type=click.Path(exists=True, file_okay=True, dir_okay=True, readable=True),
+)
+@click.option(
+    "--rules-dir",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True),
+    required=False,
+    help="Path to custom rules directory",
+)
+@click.pass_context
+def eval_nxtwave(ctx: click.Context, target: str, rules_dir: Optional[str]) -> None:
+    """Dedicated evaluation command for student AI project analysis."""
+    logger.info(f"NxtWave AutoEval scan started on target path: {target}")
+    if rules_dir:
+        logger.info(f"Using custom rules from: {rules_dir}")
+
+    result = semgrep_scanner_node({"target_path": target}, rules_dir)
+    audit = result["semgrep_audit"]
+    click.echo(json.dumps(audit, indent=2))
+    if audit.get("status") == "ERROR":
+        raise click.exceptions.Exit(1)
+
+
 @click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
 @click.help_option("--help", "-h")
 @click.pass_context
@@ -87,6 +114,7 @@ def cli(ctx: click.Context) -> None:
 
 
 cli.add_command(cmd=ci)
+cli.add_command(cmd=eval_nxtwave)
 cli.add_command(cmd=login)
 cli.add_command(cmd=publish)
 cli.add_command(cmd=scan, name="scan")

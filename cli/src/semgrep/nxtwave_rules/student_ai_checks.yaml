@@ -1,0 +1,171 @@
+rules:
+  - id: nxtwave-hardcoded-secret
+    patterns:
+      - pattern-regex: "(sk-(ant-api03-)?[a-zA-Z0-9\\-_]{32,}|hf_[a-zA-Z0-9]{32,})"
+    message: "Hardcoded API key or token detected. Use environment variables or a secret manager."
+    languages: [python, javascript, typescript, java, go, ruby, php, csharp]
+    severity: ERROR
+
+  - id: nxtwave-raw-prompt-injection
+    patterns:
+      - pattern-regex: '(?i)(prompt|messages|content)[[:space:]]*[=:][^\\n]*(request\\.|input|user_input|user_prompt)'
+    message: "Unvalidated user input is interpolated directly into an LLM prompt."
+    languages: [python, javascript, typescript]
+    severity: WARNING
+
+  - id: nxtwave-missing-try-except
+    patterns:
+      - pattern-either:
+          - pattern: openai.ChatCompletion.create(...)
+          - pattern: openai.Completion.create(...)
+          - pattern: anthropic.Anthropic().messages.create(...)
+          - pattern: anthropic.AsyncAnthropic().messages.create(...)
+          - pattern: $CLIENT.chat.completions.create(...)
+      - pattern-not-inside: |
+          try:
+              ...
+          except $EX:
+              ...
+    message: "LLM network call is outside a try/except boundary. Add exception handling and a timeout."
+    languages: [python]
+    severity: WARNING
+
+  - id: nxtwave-sql-injection
+    patterns:
+      - pattern-regex: '(?i)(execute|executemany)[[:space:]]*[(][^\\n]*(f|format|[+])'
+    message: "SQL query uses interpolation or concatenation. Use parameterized queries."
+    languages: [python, javascript, typescript, java, go, ruby, php]
+    severity: ERROR
+
+  - id: nxtwave-command-injection
+    patterns:
+      - pattern-regex: '(?i)(os[.]system|os[.]popen|subprocess[.](run|Popen|call)|child_process[.](exec|spawn)|Runtime[.]getRuntime)[[:space:]]*[(]'
+    message: "Operating-system command execution requires safe argument arrays and validation."
+    languages: [python, javascript, typescript, java]
+    severity: ERROR
+
+  - id: nxtwave-path-traversal
+    patterns:
+      - pattern-regex: '(?i)(open|send_file|readFile|readFileSync|File[.]new|Files[.]readAllBytes)[[:space:]]*[(][^\\n]*(request[.]|req[.]|params|query|argv|input|user)'
+    message: "User-controlled data reaches a file path. Use an allowlisted base directory."
+    languages: [python, javascript, typescript, ruby, java]
+    severity: ERROR
+
+  - id: nxtwave-unsafe-deserialization
+    patterns:
+      - pattern-regex: '(?i)(pickle[.](load|loads)|yaml[.]load[[:space:]]*[(]|ObjectInputStream|Marshal[.]load|unserialize[[:space:]]*[(])'
+    message: "Unsafe deserialization can execute attacker-controlled data."
+    languages: [python, ruby, php, java]
+    severity: ERROR
+
+  - id: nxtwave-weak-crypto
+    patterns:
+      - pattern-regex: '(?i)(hashlib[.]md5|hashlib[.]sha1|createHash[[:space:]]*[(][[:space:]]*["''](md5|sha1|des|rc4)|MessageDigest[.]getInstance[[:space:]]*[(][[:space:]]*["''](MD5|SHA-1|DES))'
+    message: "Weak or obsolete cryptography detected. Use modern authenticated encryption."
+    languages: [python, javascript, typescript, java, go, ruby, php, csharp]
+    severity: WARNING
+
+  - id: nxtwave-insecure-randomness
+    patterns:
+      - pattern-regex: '(?i)(random[.](random|randint|choice|choices)|Math[.]random[[:space:]]*[(]|java[.]util[.]Random)'
+    message: "Non-cryptographic randomness may be unsafe for tokens or security decisions."
+    languages: [python, javascript, typescript, java]
+    severity: WARNING
+
+  - id: nxtwave-tls-verification-disabled
+    patterns:
+      - pattern-regex: '(?i)(verify[[:space:]]*=[[:space:]]*False|CERT_NONE|rejectUnauthorized[[:space:]]*:[[:space:]]*false|InsecureSkipVerify[[:space:]]*:[[:space:]]*true)'
+    message: "TLS certificate verification is disabled."
+    languages: [python, javascript, typescript, go]
+    severity: ERROR
+
+  - id: nxtwave-debug-enabled
+    patterns:
+      - pattern-regex: '(?i)(debug[[:space:]]*=[[:space:]]*True|DEBUG[[:space:]]*=[[:space:]]*True)'
+    message: "Debug mode is enabled. Disable debug features in production."
+    languages: [python, javascript, typescript]
+    severity: WARNING
+
+  - id: nxtwave-permissive-cors
+    patterns:
+      - pattern-regex: '(?i)(Access-Control-Allow-Origin|cors)[^\\n]*[*]'
+    message: "CORS allows every origin. Restrict access to trusted origins."
+    languages: [python, javascript, typescript, java]
+    severity: WARNING
+
+  - id: nxtwave-insecure-cookie
+    patterns:
+      - pattern-regex: '(?i)(secure[[:space:]]*=[[:space:]]*False|httponly[[:space:]]*=[[:space:]]*False|samesite[^\\n]*none)'
+    message: "Cookie security flags are weak or disabled."
+    languages: [python, javascript, typescript]
+    severity: WARNING
+
+  - id: nxtwave-unsafe-redirect
+    patterns:
+      - pattern-regex: '(?i)(redirect|location[.]href|sendRedirect)[[:space:]]*[(][^\\n]*(request[.]|req[.]|params|query|next|url)'
+    message: "Redirect destination may be user controlled. Allowlist trusted destinations."
+    languages: [python, javascript, typescript, java, ruby, php]
+    severity: WARNING
+
+  - id: nxtwave-sensitive-logging
+    patterns:
+      - pattern-regex: '(?i)(logger|logging|console[.](log|error|warn)|print)[[:space:]]*[(][^\\n]*(password|secret|token|api[_-]?key|authorization|ssn)'
+    message: "Sensitive data may be written to logs. Remove or redact it."
+    languages: [python, javascript, typescript, java, go, ruby, php]
+    severity: ERROR
+
+  - id: nxtwave-dangerous-eval
+    patterns:
+      - pattern-regex: '(?i)([.]?eval[[:space:]]*[(]|[.]?exec[[:space:]]*[(]|Function[[:space:]]*[(]|vm[.]runIn)'
+    message: "Dynamic code execution is dangerous with untrusted input."
+    languages: [python, javascript, typescript, ruby, php]
+    severity: ERROR
+
+  - id: nxtwave-llm-output-execution
+    patterns:
+      - pattern-regex: '(?i)(eval|exec|subprocess[.]|os[.]system|child_process[.])[^\\n]*(completion|response|result|output|generated|llm|model)'
+    message: "LLM output reaches code or command execution. Validate or sandbox model output."
+    languages: [python, javascript, typescript]
+    severity: ERROR
+
+  - id: nxtwave-llm-tool-without-authorization
+    patterns:
+      - pattern-regex: '(?i)(tool_choice|function_call|bind_tools|tools[[:space:]]*=)[^\\n]*(delete|write|send|execute|admin|shell|database)'
+    message: "High-impact LLM tools require server-side authorization and confirmation."
+    languages: [python, javascript, typescript]
+    severity: WARNING
+
+  - id: nxtwave-unbounded-upload
+    patterns:
+      - pattern-regex: '(?i)(file[.]read[[:space:]]*[(]|request[.]files|UploadFile|multer|express-fileupload)'
+    message: "File upload handling requires size, type, content, and storage limits."
+    languages: [python, javascript, typescript]
+    severity: WARNING
+
+  - id: nxtwave-unpinned-dependency
+    patterns:
+      - pattern-regex: '(?m)^[A-Za-z0-9_.-]+[[:space:]]*$'
+    paths:
+      include:
+        - 'requirements*.txt'
+        - 'Pipfile'
+        - 'package.json'
+        - 'Gemfile'
+        - 'go.mod'
+    message: "Dependency is not version-pinned. Pin production dependencies and use a lockfile."
+    languages: [generic]
+    severity: WARNING
+
+  - id: nxtwave-container-root-user
+    patterns:
+      - pattern-regex: '(?im)^[[:space:]]*USER[[:space:]]+root[[:space:]]*$'
+    message: "Container runs as root. Use a dedicated non-root user."
+    languages: [dockerfile]
+    severity: WARNING
+
+  - id: nxtwave-private-data-in-prompt
+    patterns:
+      - pattern-regex: '(?i)(prompt|messages|content)[[:space:]]*[=:][^\\n]*(password|ssn|social|credit[_ -]?card|private[_ -]?key|medical)'
+    message: "Potential private data is sent to an LLM prompt. Minimize or redact it."
+    languages: [python, javascript, typescript]
+    severity: ERROR

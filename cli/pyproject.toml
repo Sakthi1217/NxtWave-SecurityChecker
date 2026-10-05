@@ -20,8 +20,8 @@ description = "Lightweight static analysis for many languages. Find bug variants
 # README.md is a symlink to the canonical ../README.md.
 readme = "README.md"
 requires-python = ">=3.10"
-license = "LGPL-2.1-or-later"
-license-files = ["LICENSE"]
+license = {text = "LGPL-2.1-or-later"}
+# license-files = ["LICENSE"]
 
 classifiers = [
   "Environment :: Console",
@@ -57,11 +57,13 @@ dependencies = [
   "attrs>=21.3",
   "boltons~=21.0",
   "click-option-group~=0.5",
-  "click~=8.4.2",
+  "click>=8.0",
   "colorama~=0.4.0",
   "exceptiongroup~=1.2.0",
   "glom>=23.3",
+  "groq>=0.11",
   "jsonschema~=4.25.1",
+  "langgraph>=0.2",
   "mcp==1.29.0",
   "opentelemetry-api~=1.37.0",
   "opentelemetry-sdk~=1.37.0",
@@ -148,7 +150,7 @@ zip-safe = false
 where = ["src"]
 
 [tool.setuptools.package-data]
-semgrep = ["bin/*", "bin/libs/*"]
+semgrep = ["bin/*", "bin/libs/*", "nxtwave_rules/*.yaml"]
 
 [tool.pytest.ini_options]
 # coupling: if you add a dep here it would be great if you added it to the top

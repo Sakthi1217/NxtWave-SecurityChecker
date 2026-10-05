@@ -1,3 +1,4 @@
 include src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
+recursive-include src/semgrep/nxtwave_rules *.yaml
 include src/semgrep/semgrep_interfaces/lang.json
 include LICENSE

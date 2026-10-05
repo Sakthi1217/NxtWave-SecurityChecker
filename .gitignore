@@ -140,6 +140,9 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.semgrep-core-venv/
+.gradle/
+phase5_smoke_student.py
 env/
 venv/
 ENV/
