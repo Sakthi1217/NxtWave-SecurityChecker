@@ -19,7 +19,8 @@ from semgrep.formatter.nxtwave_formatter import NXTWAVE_BASELINE_RULES, format_n
 from semgrep.nxtwave_registry import get_nxtwave_rules_dir
 
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_FALLBACK_MODELS = ("llama-3.1-8b-instant", "openai/gpt-oss-120b")
 MAX_VERIFICATION_ATTEMPTS = 2
 
 
@@ -161,21 +162,33 @@ def _default_llm_client(prompt: str) -> str:
     except ImportError as error:
         raise RuntimeError("The optional 'groq' package is not installed.") from error
 
-    response = Groq(api_key=api_key).chat.completions.create(
-        model=GROQ_MODEL,
-        temperature=0.2,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a code-security coach. Give concise, step-by-step remediation "
-                    "guidance and explicitly mention every supplied rule ID."
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ],
-    )
-    return response.choices[0].message.content or ""
+    client = Groq(api_key=api_key)
+    configured_model = os.getenv("GROQ_MODEL", GROQ_MODEL)
+    models = tuple(dict.fromkeys((configured_model,) + GROQ_FALLBACK_MODELS))
+    for model in models:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                temperature=0.2,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a code-security coach. Give concise, step-by-step remediation "
+                            "guidance and explicitly mention every supplied rule ID."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+            )
+            return response.choices[0].message.content or ""
+        except Exception as error:
+            status_code = getattr(error, "status_code", None)
+            error_text = str(error).lower()
+            model_unavailable = status_code == 404 or "model_not_found" in error_text
+            if not model_unavailable or model == models[-1]:
+                raise RuntimeError(f"Groq request failed: {error}") from error
+    raise RuntimeError("No configured Groq model is available.")
 
 
 def llm_coaching_node(
